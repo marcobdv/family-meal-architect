@@ -1,0 +1,153 @@
+@Api_HostAddress = https://localhost:7279
+@Api_HostAddress_Http = http://localhost:5234
+
+### Web UI (open in a browser)
+# http://localhost:5234/
+
+### Health Check
+GET {{Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+### Test AI Connection
+GET {{Api_HostAddress}}/test-ai
+Accept: application/json
+
+###
+
+### Ad-hoc meal plan (no account, nothing saved)
+POST {{Api_HostAddress}}/generate
+Content-Type: application/json
+
+{
+  "family": {
+    "adultPreferences": ["spicy food", "vegetables"],
+    "toddlerPreferences": ["pasta", "mild flavors"],
+    "dietaryRestrictions": ["no nuts"],
+    "availableEquipment": ["air fryer", "stovetop", "oven"],
+    "prepTimeMinutes": 120
+  },
+  "numberOfMeals": 3,
+  "recentMeals": ["spaghetti", "grilled chicken"]
+}
+
+###
+# =====================  Auth + accounts  =====================
+###
+
+### Register (returns a JWT)
+# @name register
+POST {{Api_HostAddress}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "The Smiths",
+  "email": "smiths@example.com",
+  "password": "secret123",
+  "family": {
+    "adultPreferences": ["healthy", "bold flavors"],
+    "toddlerPreferences": ["pasta", "mild flavors"],
+    "dietaryRestrictions": ["no nuts"],
+    "availableEquipment": ["stovetop", "oven", "air fryer"],
+    "prepTimeMinutes": 60
+  }
+}
+
+###
+
+### Login (returns a JWT)
+# @name login
+POST {{Api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "smiths@example.com",
+  "password": "secret123"
+}
+
+###
+# Grab the token from the login/register response above.
+@token = {{login.response.body.token}}
+
+### Current user profile
+GET {{Api_HostAddress}}/me
+Authorization: Bearer {{token}}
+
+###
+
+### Update preferences
+PUT {{Api_HostAddress}}/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "The Smiths",
+  "family": {
+    "adultPreferences": ["Mediterranean", "spicy"],
+    "toddlerPreferences": ["cheese", "pasta"],
+    "dietaryRestrictions": ["no nuts"],
+    "availableEquipment": ["stovetop", "oven"],
+    "prepTimeMinutes": 90
+  },
+  "recentMeals": ["pizza"]
+}
+
+###
+
+### Generate from saved preferences (saves plan + tracks recent meals)
+# @name generate
+POST {{Api_HostAddress}}/me/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "numberOfMeals": 3
+}
+
+###
+
+### List saved plans (history)
+GET {{Api_HostAddress}}/me/plans
+Authorization: Bearer {{token}}
+
+###
+
+### Get one saved plan (replace {planId})
+GET {{Api_HostAddress}}/me/plans/{planId}
+Authorization: Bearer {{token}}
+
+###
+
+### Generate a shopping list for a plan (replace {planId})
+POST {{Api_HostAddress}}/me/plans/{planId}/shopping-list
+Authorization: Bearer {{token}}
+
+###
+
+### Choose preparation methods and (re)build the cascading cooking plan (replace {planId} + methodId)
+# Each generated meal includes preparationMethods[] with ids; pick one per meal.
+POST {{Api_HostAddress}}/me/plans/{planId}/cooking-plan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "selections": [
+    { "mealIndex": 0, "methodId": "<preparationMethod-id>" },
+    { "mealIndex": 1, "methodId": "<preparationMethod-id>" }
+  ]
+}
+
+###
+
+### Regenerate a single meal in a plan (replace {planId}, index is 0-based)
+POST {{Api_HostAddress}}/me/plans/{planId}/meals/0/regenerate
+Authorization: Bearer {{token}}
+
+###
+
+### Delete a saved plan (replace {planId})
+DELETE {{Api_HostAddress}}/me/plans/{planId}
+Authorization: Bearer {{token}}
+
+###

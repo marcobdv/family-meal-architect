@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family Meal Architect</title>
+  <style>
+    :root {
+      --bg: #f6f7fb; --card: #ffffff; --accent: #4f46e5; --accent-dark: #4338ca;
+      --text: #1f2937; --muted: #6b7280; --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5; }
+    header { background: linear-gradient(135deg, var(--accent), #7c3aed); color: white;
+      padding: 1.25rem 1rem; display: flex; align-items: center; justify-content: space-between; }
+    header .brand h1 { margin: 0; font-size: 1.4rem; }
+    header .brand p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.85rem; }
+    header .user-box { font-size: 0.9rem; text-align: right; }
+    main { max-width: 880px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    h2 { font-size: 1.05rem; margin: 0 0 1rem; }
+    label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.9rem; }
+    .hint { font-weight: 400; color: var(--muted); font-size: 0.8rem; }
+    input, select, textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid var(--border);
+      border-radius: 8px; font: inherit; margin-bottom: 1rem; background: #fff; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .row > div { flex: 1 1 200px; }
+    button { background: var(--accent); color: white; border: none; padding: 0.6rem 1.2rem;
+      border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    button:hover { background: var(--accent-dark); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.secondary { background: #fff; color: var(--accent-dark); border: 1px solid var(--border); }
+    button.secondary:hover { background: #f3f4f6; }
+    button.danger { background: #fff; color: #b91c1c; border: 1px solid #fecaca; }
+    button.danger:hover { background: #fef2f2; }
+    button.small { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+    .btn-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .meal { border-left: 4px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1rem;
+      background: #fafafe; border-radius: 0 8px 8px 0; }
+    .meal h3 { margin: 0 0 0.3rem; font-size: 1.05rem; }
+    .meal .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .meal .adapt { font-size: 0.9rem; margin-top: 0.4rem; }
+    .meal .adapt strong { color: var(--accent-dark); }
+    .meal .meal-head { display: flex; justify-content: space-between; align-items: start; gap: 0.5rem; }
+    .tag { display: inline-block; background: #eef2ff; color: var(--accent-dark); border-radius: 999px;
+      padding: 0.1rem 0.6rem; font-size: 0.75rem; margin: 0.1rem 0.2rem 0.1rem 0; }
+    .summary { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+    .coord { white-space: pre-wrap; background: #f9fafb; border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.75rem; font-size: 0.88rem; margin-top: 0.5rem; }
+    .ingredients { margin-top: 0.5rem; }
+    .ingredients-title { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.2rem; }
+    .ingredients ul { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; columns: 2; }
+    .ingredients .qty { color: var(--accent-dark); font-weight: 600; }
+    .qty { color: var(--accent-dark); font-weight: 600; }
+    .phase { font-size: 0.9rem; margin-top: 0.4rem; padding: 0.4rem 0.6rem; border-radius: 8px; }
+    .phase.prep-ahead { background: #eef2ff; }
+    .phase.eat-day { background: #ecfdf5; }
+    .idea { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; background: #fff; }
+    .idea:hover { border-color: var(--accent); }
+    .idea input { width: auto; margin: 0.25rem 0 0; }
+    .idea-body { display: flex; flex-direction: column; }
+    .idea-name { font-weight: 600; }
+    .idea-blurb { font-size: 0.88rem; color: var(--muted); }
+    .prep { margin-top: 0.6rem; }
+    .prep-title { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.3rem; }
+    .prep-option { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.4rem; cursor: pointer; background: #fff; }
+    .prep-option:hover { border-color: var(--accent); }
+    .prep-option input { width: auto; margin: 0.2rem 0 0; }
+    .prep-body { display: flex; flex-direction: column; }
+    .prep-name { font-weight: 600; font-size: 0.9rem; }
+    .prep-meta { font-weight: 400; color: var(--muted); font-size: 0.78rem; margin-left: 0.3rem; }
+    .prep-desc { font-size: 0.85rem; color: var(--text); }
+    .error { color: #b91c1c; background: #fee2e2; padding: 0.75rem 1rem; border-radius: 8px; }
+    .toast { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;
+      padding: 0.6rem 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem; }
+    .spinner { display: none; margin-left: 0.6rem; font-size: 0.9rem; color: var(--muted); }
+    .spinner.show { display: inline; }
+    .hidden { display: none !important; }
+    .auth-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .auth-tabs button { flex: 1; }
+    .history-item { display: flex; justify-content: space-between; align-items: center;
+      gap: 0.5rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .history-item:last-child { border-bottom: none; }
+    .history-item .info { font-size: 0.9rem; }
+    .history-item .info small { color: var(--muted); }
+    .shopping-cat { margin-top: 0.75rem; }
+    .shopping-cat h4 { margin: 0 0 0.3rem; font-size: 0.9rem; color: var(--accent-dark); }
+    .shopping-cat ul { margin: 0; padding-left: 1.2rem; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>🍽️ Family Meal Architect</h1>
+      <p>Prep once, eat well all week — big prep day, quick weekday finishes</p>
+    </div>
+    <div class="user-box hidden" id="user-box">
+      <div id="greeting"></div>
+      <button class="secondary small" id="logout-btn" style="margin-top:0.3rem">Log out</button>
+    </div>
+  </header>
+  <main>
+    <!-- AUTH -->
+    <div id="auth-view">
+      <div class="card" style="max-width:420px;margin:1rem auto">
+        <div class="auth-tabs">
+          <button id="tab-login">Log in</button>
+          <button id="tab-register" class="secondary">Register</button>
+        </div>
+
+        <form id="login-form">
+          <label>Email</label>
+          <input type="email" id="login-email" required />
+          <label>Password</label>
+          <input type="password" id="login-password" required />
+          <button type="submit" id="login-btn">Log in</button>
+          <span class="spinner" id="login-spinner">…</span>
+        </form>
+
+        <form id="register-form" class="hidden">
+          <label>Name <span class="hint">(household name)</span></label>
+          <input type="text" id="register-name" required />
+          <label>Email</label>
+          <input type="email" id="register-email" required />
+          <label>Password <span class="hint">(min 6 characters)</span></label>
+          <input type="password" id="register-password" required minlength="6" />
+          <button type="submit" id="register-btn">Create account</button>
+          <span class="spinner" id="register-spinner">…</span>
+        </form>
+        <div id="auth-msg"></div>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="app-view" class="hidden">
+      <div class="card">
+        <h2>🥗 Your preferences</h2>
+        <div class="row">
+          <div>
+            <label>Household name</label>
+            <input type="text" id="name" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Adult preferences <span class="hint">(comma-separated)</span></label>
+            <input type="text" id="adultPreferences" />
+          </div>
+          <div>
+            <label>Toddler preferences <span class="hint">(comma-separated)</span></label>
+            <input type="text" id="toddlerPreferences" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Dietary restrictions <span class="hint">(comma-separated)</span></label>
+            <input type="text" id="dietaryRestrictions" />
+          </div>
+          <div>
+            <label>Available equipment <span class="hint">(comma-separated)</span></label>
+            <input type="text" id="availableEquipment" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Prep-day time available <span class="hint">(minutes)</span></label>
+            <input type="number" id="prepTimeMinutes" min="10" max="480" />
+          </div>
+          <div>
+            <label>Weekday active-cooking limit <span class="hint">(hands-on minutes per eat day)</span></label>
+            <input type="number" id="weekdayActiveCookingMinutes" min="5" max="60" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Recent meals to avoid <span class="hint">(auto-updated after generating)</span></label>
+            <input type="text" id="recentMeals" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button type="button" id="save-btn">Save preferences</button>
+          <span class="spinner" id="save-spinner">Saving…</span>
+        </div>
+        <div id="save-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>✨ Plan your meals</h2>
+        <p class="hint">Step 1 — get a shortlist of ideas, pick the ones you like (and add your own), then build full recipes only for those. Or skip straight to a surprise plan.</p>
+
+        <div class="row" style="align-items:flex-end">
+          <div style="max-width:160px">
+            <label>How many ideas?</label>
+            <input type="number" id="ideaCount" value="6" min="3" max="12" />
+          </div>
+          <div class="btn-row" style="padding-bottom:1rem">
+            <button type="button" id="suggest-btn">💡 Suggest ideas</button>
+            <span class="spinner" id="suggest-spinner">Brainstorming…</span>
+          </div>
+        </div>
+
+        <div id="ideas"></div>
+
+        <div id="build-area" class="hidden">
+          <label style="margin-top:0.5rem">Add your own ideas <span class="hint">(comma-separated, optional)</span></label>
+          <input type="text" id="customIdeas" placeholder="e.g. lasagne, thai green curry" />
+          <div class="btn-row">
+            <button type="button" id="build-btn">🍳 Build selected recipes (<span id="sel-count">0</span>)</button>
+            <span class="spinner" id="build-spinner">Cooking up recipes…</span>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0" />
+        <div class="row" style="align-items:flex-end">
+          <div style="max-width:160px">
+            <label>Surprise me with</label>
+            <input type="number" id="numberOfMeals" value="3" min="1" max="10" />
+          </div>
+          <div class="btn-row" style="padding-bottom:1rem">
+            <button type="button" class="secondary" id="generate-btn">🎲 Surprise plan</button>
+            <span class="spinner" id="generate-spinner">Cooking up ideas…</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="result"></div>
+
+      <div class="card">
+        <h2>📚 History
+          <button class="secondary small" id="refresh-history" style="float:right">Refresh</button>
+        </h2>
+        <div id="history"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const TOKEN_KEY = 'fma_token';
+    let token = localStorage.getItem(TOKEN_KEY) || '';
+    let currentPlanId = null;
+
+    const toList = (id) => $(id).value.split(',').map(s => s.trim()).filter(Boolean);
+    const setList = (id, arr) => { $(id).value = (arr || []).join(', '); };
+    const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function api(path, { method = 'GET', body = null, auth = true } = {}) {
+      const headers = {};
+      if (body) headers['Content-Type'] = 'application/json';
+      if (auth && token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
+      if (res.status === 401 && auth) { handleLogout(); throw new Error('Session expired — please log in again.'); }
+      let data = null;
+      try { data = await res.json(); } catch { /* no body */ }
+      if (!res.ok) throw new Error((data && (data.error || data.errorMessage)) || `Request failed (${res.status})`);
+      return data;
+    }
+
+    function showMsg(el, text, isError) {
+      el.innerHTML = text ? `<div class="${isError ? 'error' : 'toast'}">${escapeHtml(text)}</div>` : '';
+    }
+
+    // --- Auth UI ---
+    $('tab-login').addEventListener('click', () => switchAuth('login'));
+    $('tab-register').addEventListener('click', () => switchAuth('register'));
+    function switchAuth(which) {
+      const login = which === 'login';
+      $('login-form').classList.toggle('hidden', !login);
+      $('register-form').classList.toggle('hidden', login);
+      $('tab-login').className = login ? '' : 'secondary';
+      $('tab-register').className = login ? 'secondary' : '';
+      showMsg($('auth-msg'), '');
+    }
+
+    $('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('login-btn').disabled = true; $('login-spinner').classList.add('show');
+      try {
+        const data = await api('/auth/login', { method: 'POST', auth: false,
+          body: { email: $('login-email').value.trim(), password: $('login-password').value } });
+        onAuthSuccess(data);
+      } catch (err) { showMsg($('auth-msg'), err.message, true); }
+      finally { $('login-btn').disabled = false; $('login-spinner').classList.remove('show'); }
+    });
+
+    $('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('register-btn').disabled = true; $('register-spinner').classList.add('show');
+      try {
+        const data = await api('/auth/register', { method: 'POST', auth: false, body: {
+          name: $('register-name').value.trim(),
+          email: $('register-email').value.trim(),
+          password: $('register-password').value
+        }});
+        onAuthSuccess(data);
+      } catch (err) { showMsg($('auth-msg'), err.message, true); }
+      finally { $('register-btn').disabled = false; $('register-spinner').classList.remove('show'); }
+    });
+
+    function onAuthSuccess(data) {
+      token = data.token;
+      localStorage.setItem(TOKEN_KEY, token);
+      enterApp(data.user);
+    }
+
+    $('logout-btn').addEventListener('click', handleLogout);
+    function handleLogout() {
+      token = ''; localStorage.removeItem(TOKEN_KEY);
+      $('auth-view').classList.remove('hidden');
+      $('app-view').classList.add('hidden');
+      $('user-box').classList.add('hidden');
+    }
+
+    // --- App ---
+    function fillProfile(user) {
+      $('name').value = user.name || '';
+      const fam = user.family || {};
+      setList('adultPreferences', fam.adultPreferences);
+      setList('toddlerPreferences', fam.toddlerPreferences);
+      setList('dietaryRestrictions', fam.dietaryRestrictions);
+      setList('availableEquipment', fam.availableEquipment);
+      $('prepTimeMinutes').value = fam.prepTimeMinutes || 90;
+      $('weekdayActiveCookingMinutes').value = fam.weekdayActiveCookingMinutes || 15;
+      setList('recentMeals', user.recentMeals);
+    }
+
+    function readProfile() {
+      return {
+        name: $('name').value.trim(),
+        family: {
+          adultPreferences: toList('adultPreferences'),
+          toddlerPreferences: toList('toddlerPreferences'),
+          dietaryRestrictions: toList('dietaryRestrictions'),
+          availableEquipment: toList('availableEquipment'),
+          prepTimeMinutes: parseInt($('prepTimeMinutes').value, 10) || 90,
+          weekdayActiveCookingMinutes: parseInt($('weekdayActiveCookingMinutes').value, 10) || 15
+        },
+        recentMeals: toList('recentMeals')
+      };
+    }
+
+    async function enterApp(user) {
+      $('auth-view').classList.add('hidden');
+      $('app-view').classList.remove('hidden');
+      $('user-box').classList.remove('hidden');
+      $('greeting').textContent = `Hi, ${user.name}`;
+      fillProfile(user);
+      await loadHistory();
+    }
+
+    $('save-btn').addEventListener('click', async () => {
+      $('save-btn').disabled = true; $('save-spinner').classList.add('show');
+      try {
+        const updated = await api('/me', { method: 'PUT', body: readProfile() });
+        fillProfile(updated);
+        showMsg($('save-msg'), 'Preferences saved.', false);
+      } catch (err) { showMsg($('save-msg'), err.message, true); }
+      finally { $('save-btn').disabled = false; $('save-spinner').classList.remove('show'); }
+    });
+
+    // Shared generation: body is either { numberOfMeals } or { requestedMeals }.
+    async function runGeneration(body, btn, spinner) {
+      btn.disabled = true; spinner.classList.add('show');
+      $('result').innerHTML = '';
+      try {
+        const data = await api('/me/generate', { method: 'POST', body });
+        currentPlanId = data.planId;
+        renderPlan(data.plan, data.tokensUsed, data.estimatedCost);
+        const me = await api('/me');           // server updated recent meals
+        setList('recentMeals', me.recentMeals);
+        await loadHistory();
+        $('result').scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        $('result').innerHTML = `<div class="card error">${escapeHtml(err.message)}</div>`;
+      } finally { btn.disabled = false; spinner.classList.remove('show'); }
+    }
+
+    // Surprise (one-shot, AI chooses).
+    $('generate-btn').addEventListener('click', () =>
+      runGeneration({ numberOfMeals: parseInt($('numberOfMeals').value, 10) || 3 }, $('generate-btn'), $('generate-spinner')));
+
+    // Step 1: suggest ideas.
+    $('suggest-btn').addEventListener('click', async () => {
+      $('suggest-btn').disabled = true; $('suggest-spinner').classList.add('show');
+      try {
+        const count = parseInt($('ideaCount').value, 10) || 6;
+        const data = await api('/me/suggest', { method: 'POST', body: { count } });
+        renderIdeas(data.ideas || []);
+      } catch (err) {
+        $('ideas').innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      } finally { $('suggest-btn').disabled = false; $('suggest-spinner').classList.remove('show'); }
+    });
+
+    function renderIdeas(ideas) {
+      if (!ideas.length) { $('ideas').innerHTML = `<p class="hint">No ideas returned — try again.</p>`; return; }
+      $('ideas').innerHTML = ideas.map((idea, i) => {
+        const tags = [idea.cuisine, idea.mainIngredient].filter(Boolean)
+          .map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+        return `
+          <label class="idea">
+            <input type="checkbox" class="idea-cb" value="${escapeHtml(idea.name)}" checked />
+            <span class="idea-body">
+              <span class="idea-name">${escapeHtml(idea.name)} ${tags}</span>
+              <span class="idea-blurb">${escapeHtml(idea.blurb)}</span>
+            </span>
+          </label>`;
+      }).join('');
+      $('build-area').classList.remove('hidden');
+      $('ideas').querySelectorAll('.idea-cb').forEach(cb => cb.addEventListener('change', updateSelCount));
+      updateSelCount();
+    }
+
+    function selectedIdeaNames() {
+      const checked = [...document.querySelectorAll('.idea-cb:checked')].map(cb => cb.value);
+      const custom = ($('customIdeas').value || '').split(',').map(s => s.trim()).filter(Boolean);
+      return [...checked, ...custom];
+    }
+
+    function updateSelCount() {
+      const n = document.querySelectorAll('.idea-cb:checked').length;
+      $('sel-count').textContent = n;
+    }
+
+    // Step 2: build full recipes for the picked ideas.
+    $('build-btn').addEventListener('click', () => {
+      const requestedMeals = selectedIdeaNames();
+      if (!requestedMeals.length) { alert('Pick at least one idea, or add your own.'); return; }
+      if (requestedMeals.length > 10) { alert('Please choose at most 10.'); return; }
+      runGeneration({ requestedMeals }, $('build-btn'), $('build-spinner'));
+    });
+    $('customIdeas').addEventListener('input', () => { /* custom ideas count toward build, shown on click */ });
+
+    function renderPlan(plan, tokensUsed, estimatedCost, opts = {}) {
+      const cost = (estimatedCost ?? 0).toFixed(4);
+      let html = `<div class="card" id="plan-card">`;
+      html += `<h2>🍲 Meal plan</h2>`;
+      html += `<div class="summary">${plan.meals.length} meals · ~${plan.estimatedPrepTime} min total prep`;
+      if (tokensUsed != null) html += ` · ${tokensUsed} tokens · est. $${cost}`;
+      html += `</div>`;
+
+      plan.meals.forEach((meal, i) => {
+        const equip = (meal.requiredEquipment || []).map(eq => `<span class="tag">${escapeHtml(eq)}</span>`).join('');
+        html += `
+          <div class="meal">
+            <div class="meal-head">
+              <h3>${escapeHtml(meal.name)}</h3>
+              ${currentPlanId ? `<button class="secondary small regen-btn" data-index="${i}">↻ Swap</button>` : ''}
+            </div>
+            <div class="meta">${meal.servings ? '🍱 makes ' + meal.servings + ' portions' : ''}${meal.eatDayActiveMinutes ? ' · 🔆 ' + meal.eatDayActiveMinutes + ' min active on eat day' + (meal.eatDayTotalMinutes && meal.eatDayTotalMinutes !== meal.eatDayActiveMinutes ? ' (' + meal.eatDayTotalMinutes + ' min total)' : '') : ''} ${equip ? '· ' + equip : ''}</div>
+            <div>${escapeHtml(meal.description)}</div>
+            ${renderIngredients(meal)}
+            ${renderPhases(meal)}
+            <div class="adapt"><strong>👶 Toddler:</strong> ${escapeHtml(meal.toddlerVersion)}</div>
+            <div class="adapt"><strong>🧑 Adult booster:</strong> ${escapeHtml(meal.adultBooster)}</div>
+            ${renderPreparations(meal, i)}
+          </div>`;
+      });
+
+      html += `<div class="btn-row" style="margin-top:1rem">
+        <button id="cookplan-btn">🧑‍🍳 Generate prep-day plan</button>
+        <span class="spinner" id="cookplan-spinner">Planning…</span>
+      </div>`;
+
+      if (plan.equipmentCoordination)
+        html += `<div style="margin-top:0.75rem"><strong>🧑‍🍳 Prep-day session (the heavy lifting)</strong><div class="coord">${escapeHtml(plan.equipmentCoordination)}</div></div>`;
+      if (plan.familyAdaptations)
+        html += `<div style="margin-top:0.75rem"><strong>👨‍👩‍👧 Portioning & eat-day reminders</strong><div class="coord">${escapeHtml(plan.familyAdaptations)}</div></div>`;
+
+      html += `<div class="btn-row" style="margin-top:1rem">
+        <button class="secondary" id="shopping-btn">🛒 Generate shopping list</button>
+        <span class="spinner" id="shopping-spinner">Building list…</span>
+      </div>`;
+      html += `<div id="shopping-list"></div>`;
+      html += `</div>`;
+      $('result').innerHTML = html;
+
+      // Pre-render existing shopping list when viewing a saved plan.
+      if (opts.shoppingList) renderShoppingList(opts.shoppingList);
+
+      document.querySelectorAll('.regen-btn').forEach(btn =>
+        btn.addEventListener('click', () => regenerateMeal(parseInt(btn.dataset.index, 10), btn)));
+      const cBtn = $('cookplan-btn');
+      if (cBtn) cBtn.addEventListener('click', generateCookingPlan);
+      const sBtn = $('shopping-btn');
+      if (sBtn) sBtn.addEventListener('click', generateShoppingList);
+    }
+
+    function renderPhases(meal) {
+      const parts = [];
+      if (meal.prepAhead) parts.push(`<div class="phase prep-ahead"><strong>🧑‍🍳 Prep day:</strong> ${escapeHtml(meal.prepAhead)}</div>`);
+      if (meal.storageInstructions) parts.push(`<div class="adapt"><strong>🧊 Store:</strong> ${escapeHtml(meal.storageInstructions)}</div>`);
+      if (meal.eatDayInstructions) {
+        const t = meal.eatDayActiveMinutes ? ` <span class="qty">(${meal.eatDayActiveMinutes} min active)</span>` : '';
+        parts.push(`<div class="phase eat-day"><strong>🍽️ Eat day${t}:</strong> ${escapeHtml(meal.eatDayInstructions)}</div>`);
+      }
+      return parts.join('');
+    }
+
+    function renderIngredients(meal) {
+      const ings = meal.ingredients || [];
+      if (!ings.length) return '';
+      const items = ings.map(i =>
+        `<li>${escapeHtml(i.name)}${i.quantity ? ' — <span class="qty">' + escapeHtml(i.quantity) + '</span>' : ''}</li>`
+      ).join('');
+      return `<div class="ingredients"><div class="ingredients-title">🧺 Ingredients</div><ul>${items}</ul></div>`;
+    }
+
+    function renderPreparations(meal, mealIndex) {
+      const methods = meal.preparationMethods || [];
+      if (!methods.length) return '';
+      const selectedId = meal.selectedPreparationId;
+      const rows = methods.map(m => {
+        const checked = m.id === selectedId ? 'checked' : '';
+        const eq = (m.equipment || []).map(e => escapeHtml(e)).join(', ');
+        const rec = m.recommended ? ' <span class="tag">recommended</span>' : '';
+        return `
+          <label class="prep-option">
+            <input type="radio" name="prep-${mealIndex}" value="${escapeHtml(m.id)}" ${checked} />
+            <span class="prep-body">
+              <span class="prep-name">${escapeHtml(m.name)}${rec}
+                <span class="prep-meta">⏱️ ${m.prepTimeMinutes} min${eq ? ' · ' + eq : ''}</span>
+              </span>
+              <span class="prep-desc">${escapeHtml(m.description)}</span>
+            </span>
+          </label>`;
+      }).join('');
+      return `<div class="prep"><div class="prep-title">Preparation method</div>${rows}</div>`;
+    }
+
+    async function generateCookingPlan() {
+      if (!currentPlanId) return;
+      const btn = $('cookplan-btn'); btn.disabled = true; $('cookplan-spinner').classList.add('show');
+      // Collect the chosen radio per meal.
+      const selections = [];
+      document.querySelectorAll('input[type=radio][name^="prep-"]:checked').forEach(r => {
+        selections.push({ mealIndex: parseInt(r.name.slice('prep-'.length), 10), methodId: r.value });
+      });
+      try {
+        const plan = await api(`/me/plans/${currentPlanId}/cooking-plan`, { method: 'POST', body: { selections } });
+        renderPlan(plan.plan, plan.tokensUsed, plan.estimatedCost, { shoppingList: plan.shoppingList });
+      } catch (err) {
+        alert(err.message); btn.disabled = false; $('cookplan-spinner').classList.remove('show');
+      }
+    }
+
+    async function regenerateMeal(index, btn) {
+      if (!currentPlanId) return;
+      btn.disabled = true; btn.textContent = '↻ …';
+      try {
+        await api(`/me/plans/${currentPlanId}/meals/${index}/regenerate`, { method: 'POST' });
+        const plan = await api(`/me/plans/${currentPlanId}`);
+        renderPlan(plan.plan, null, null, { shoppingList: plan.shoppingList });
+      } catch (err) {
+        alert(err.message); btn.disabled = false; btn.textContent = '↻ Swap';
+      }
+    }
+
+    async function generateShoppingList() {
+      if (!currentPlanId) return;
+      const btn = $('shopping-btn'); btn.disabled = true; $('shopping-spinner').classList.add('show');
+      try {
+        const items = await api(`/me/plans/${currentPlanId}/shopping-list`, { method: 'POST' });
+        renderShoppingList(items);
+        await loadHistory();
+      } catch (err) {
+        $('shopping-list').innerHTML = `<div class="error" style="margin-top:0.75rem">${escapeHtml(err.message)}</div>`;
+      } finally { btn.disabled = false; $('shopping-spinner').classList.remove('show'); }
+    }
+
+    function renderShoppingList(items) {
+      const byCat = {};
+      for (const it of items) { (byCat[it.category] = byCat[it.category] || []).push(it); }
+      let html = `<h3 style="margin-top:1rem">🛒 Shopping list</h3>`;
+      for (const cat of Object.keys(byCat).sort()) {
+        html += `<div class="shopping-cat"><h4>${escapeHtml(cat)}</h4><ul>`;
+        html += byCat[cat].map(i => `<li>${escapeHtml(i.name)}${i.quantity ? ' — ' + escapeHtml(i.quantity) : ''}</li>`).join('');
+        html += `</ul></div>`;
+      }
+      $('shopping-list').innerHTML = html;
+    }
+
+    // --- History ---
+    $('refresh-history').addEventListener('click', loadHistory);
+    async function loadHistory() {
+      try {
+        const plans = await api('/me/plans');
+        if (!plans.length) { $('history').innerHTML = `<p class="hint">No saved plans yet.</p>`; return; }
+        $('history').innerHTML = plans.map(p => `
+          <div class="history-item">
+            <div class="info">
+              <strong>${escapeHtml(p.mealNames.join(', ') || 'Plan')}</strong><br>
+              <small>${new Date(p.createdAt).toLocaleString()} · ${p.numberOfMeals} meals${p.hasShoppingList ? ' · 🛒' : ''}</small>
+            </div>
+            <div class="btn-row">
+              <button class="secondary small view-plan" data-id="${escapeHtml(p.id)}">View</button>
+              <button class="danger small del-plan" data-id="${escapeHtml(p.id)}">Delete</button>
+            </div>
+          </div>`).join('');
+        document.querySelectorAll('.view-plan').forEach(b => b.addEventListener('click', () => viewPlan(b.dataset.id)));
+        document.querySelectorAll('.del-plan').forEach(b => b.addEventListener('click', () => deletePlan(b.dataset.id)));
+      } catch (err) { $('history').innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`; }
+    }
+
+    async function viewPlan(id) {
+      try {
+        const plan = await api(`/me/plans/${id}`);
+        currentPlanId = plan.id;
+        renderPlan(plan.plan, plan.tokensUsed, plan.estimatedCost, { shoppingList: plan.shoppingList });
+        $('result').scrollIntoView({ behavior: 'smooth' });
+      } catch (err) { alert(err.message); }
+    }
+
+    async function deletePlan(id) {
+      if (!confirm('Delete this plan?')) return;
+      try {
+        await api(`/me/plans/${id}`, { method: 'DELETE' });
+        if (currentPlanId === id) { currentPlanId = null; $('result').innerHTML = ''; }
+        await loadHistory();
+      } catch (err) { alert(err.message); }
+    }
+
+    // --- Boot ---
+    async function boot() {
+      if (token) {
+        try {
+          const user = await api('/me');
+          await enterApp(user);
+          return;
+        } catch { /* token invalid; fall through to auth */ }
+      }
+      $('auth-view').classList.remove('hidden');
+    }
+    boot();
+  </script>
+</body>
+</html>
