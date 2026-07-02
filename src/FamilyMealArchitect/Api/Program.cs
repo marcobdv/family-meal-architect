@@ -39,8 +39,13 @@ var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtKeyWasGenerated = false;
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
+    if (!builder.Environment.IsDevelopment())
+    {
+        // Outside dev an unset key must be a hard failure: a silently generated key
+        // invalidates every session on restart and breaks multi-instance deployments.
+        throw new InvalidOperationException("Jwt:Key is not configured. Set the Jwt__Key environment variable to a stable signing key.");
+    }
     // Dev fallback: generate an ephemeral key (tokens won't survive a restart).
-    // Set Jwt__Key in production for stable, externally-managed signing.
     jwtKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
     builder.Configuration["Jwt:Key"] = jwtKey;
     jwtKeyWasGenerated = true;

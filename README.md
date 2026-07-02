@@ -169,7 +169,7 @@ Set via `appsettings.json` or environment variables (double-underscore form, e.g
 | `OpenAI:ModelName` | Chat model | `gpt-4o-mini` |
 | `OpenAI:MultiStage` | Run the full multi-stage pipeline | `true` |
 | `OpenAI:InputCostPer1MTokens` / `OutputCostPer1MTokens` | Cost estimation rates (USD / 1M) | `0.15` / `0.60` |
-| `Jwt:Key` | JWT signing key | auto-generated in dev |
+| `Jwt:Key` | JWT signing key | auto-generated in dev; **required** otherwise |
 | `Jwt:Issuer` / `Jwt:Audience` / `Jwt:ExpiryMinutes` | JWT settings | `FamilyMealArchitect` / same / 7 days |
 
 ## 🔌 API Overview
