@@ -174,9 +174,13 @@ Set via `appsettings.json` or environment variables (double-underscore form, e.g
 
 ## 🔌 API Overview
 
-**Public:** `GET /health`, `GET /test-ai`, `POST /generate` (ad-hoc, nothing saved).
+**Public:** `GET /health`.
 
 **Auth:** `POST /auth/register`, `POST /auth/login`.
+
+**Authenticated utilities:** `GET /test-ai` (connectivity check), `POST /generate` (ad-hoc plan,
+nothing saved). Every endpoint that calls OpenAI requires a JWT and is **rate-limited**
+(10 requests/minute per user) so the API key can't be drained.
 
 **Current user** (JWT required):
 

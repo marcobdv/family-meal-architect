@@ -10,14 +10,16 @@ Accept: application/json
 
 ###
 
-### Test AI Connection
+### Test AI Connection (requires a JWT — register/login below first)
 GET {{Api_HostAddress}}/test-ai
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ###
 
-### Ad-hoc meal plan (no account, nothing saved)
+### Ad-hoc meal plan (nothing saved; requires a JWT)
 POST {{Api_HostAddress}}/generate
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {

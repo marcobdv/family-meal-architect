@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
 using Api.Data;
 using Api.Models;
 using Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -66,6 +68,23 @@ builder.Services
     });
 builder.Services.AddAuthorization();
 
+// --- Rate limiting ---
+// Endpoints that call OpenAI spend real money; cap them per user (per IP when anonymous).
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("ai", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+});
+
 var app = builder.Build();
 
 // Create the database/schema on first run.
@@ -89,6 +108,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 static string? GetUserId(ClaimsPrincipal principal) =>
     principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -103,19 +123,28 @@ app.MapGet("/test-ai", async (AiMealPlanningService aiService) =>
 {
     var result = await aiService.TestConnectionAsync();
     return Results.Ok(new { aiResponse = result, timestamp = DateTime.UtcNow });
-});
+}).RequireAuthorization().RequireRateLimiting("ai");
 
-// Ad-hoc generation (no account required, nothing saved).
-app.MapPost("/generate", async (MealPlanRequest request, AiMealPlanningService aiService, ILogger<Program> logger) =>
+// Ad-hoc generation (nothing saved). Requires an account: it spends OpenAI tokens.
+app.MapPost("/generate", async (MealPlanRequest request, AiMealPlanningService aiService) =>
 {
-    if (request.NumberOfMeals <= 0 || request.NumberOfMeals > 10)
+    if (request.Family is null)
+        return Results.BadRequest(new { error = "A family profile is required" });
+
+    var requestedMeals = SanitizeRequestedMeals(request.RequestedMeals, out var invalid);
+    if (invalid is not null) return Results.BadRequest(new { error = invalid });
+
+    var numberOfMeals = requestedMeals.Count > 0 ? requestedMeals.Count : request.NumberOfMeals;
+    if (numberOfMeals <= 0 || numberOfMeals > 10)
         return Results.BadRequest(new { error = "Number of meals must be between 1 and 10" });
-    if (request.Family?.AvailableEquipment?.Count == 0)
+    if (request.Family.AvailableEquipment.Count == 0)
         return Results.BadRequest(new { error = "At least one piece of equipment must be available" });
 
+    request.RequestedMeals = requestedMeals;
+    request.NumberOfMeals = numberOfMeals;
     var response = await aiService.GenerateMealPlanAsync(request);
     return response.Success ? Results.Ok(response) : Results.BadRequest(response);
-});
+}).RequireAuthorization().RequireRateLimiting("ai");
 
 app.MapGet("/sample-request", () => Results.Ok(new MealPlanRequest
 {
@@ -208,7 +237,7 @@ me.MapPost("/suggest", async (SuggestRequest? req, ClaimsPrincipal principal, Us
     var (ideas, tokens, cost, error) = await aiService.SuggestMealsAsync(user.Family, count, user.RecentMeals);
     if (error is not null) return Results.BadRequest(new { error });
     return Results.Ok(new { ideas, tokensUsed = tokens, estimatedCost = cost });
-});
+}).RequireRateLimiting("ai");
 
 // Generate from saved preferences, persist the plan, and track recent meals.
 me.MapPost("/generate", async (GenerateForUserRequest? req, ClaimsPrincipal principal, UserRepository repo, AiMealPlanningService aiService) =>
@@ -217,10 +246,8 @@ me.MapPost("/generate", async (GenerateForUserRequest? req, ClaimsPrincipal prin
     if (user is null) return Results.NotFound();
 
     // If the user picked specific dishes, build one recipe per pick; else use the count.
-    var requestedMeals = (req?.RequestedMeals ?? [])
-        .Select(m => m?.Trim() ?? "")
-        .Where(m => m.Length > 0)
-        .ToList();
+    var requestedMeals = SanitizeRequestedMeals(req?.RequestedMeals, out var invalid);
+    if (invalid is not null) return Results.BadRequest(new { error = invalid });
     var numberOfMeals = requestedMeals.Count > 0 ? requestedMeals.Count : (req?.NumberOfMeals ?? 5);
     if (numberOfMeals <= 0 || numberOfMeals > 10)
         return Results.BadRequest(new { error = "Number of meals must be between 1 and 10" });
@@ -251,7 +278,7 @@ me.MapPost("/generate", async (GenerateForUserRequest? req, ClaimsPrincipal prin
     var saved = await repo.AddPlanAndUpdateUserAsync(plan, user);
 
     return Results.Ok(new { planId = saved.Id, response.Plan, response.TokensUsed, response.EstimatedCost, success = true });
-});
+}).RequireRateLimiting("ai");
 
 me.MapGet("/plans", async (ClaimsPrincipal principal, UserRepository repo) =>
 {
@@ -291,7 +318,7 @@ me.MapPost("/plans/{planId}/shopping-list", async (string planId, ClaimsPrincipa
     plan.ShoppingList = items; // new reference -> persisted
     await repo.SavePlanChangesAsync();
     return Results.Ok(items);
-});
+}).RequireRateLimiting("ai");
 
 // Regenerate a single meal within a saved plan.
 me.MapPost("/plans/{planId}/meals/{index:int}/regenerate", async (string planId, int index, ClaimsPrincipal principal, UserRepository repo, AiMealPlanningService aiService) =>
@@ -323,7 +350,7 @@ me.MapPost("/plans/{planId}/meals/{index:int}/regenerate", async (string planId,
     };
     await repo.SavePlanChangesAsync();
     return Results.Ok(meal);
-});
+}).RequireRateLimiting("ai");
 
 // Apply the user's per-meal preparation-method choices and (re)build the
 // parallel/cascading cooking plan accordingly.
@@ -356,9 +383,22 @@ me.MapPost("/plans/{planId}/cooking-plan", async (string planId, CookingPlanRequ
     };
     await repo.SavePlanChangesAsync();
     return Results.Ok(plan);
-});
+}).RequireRateLimiting("ai");
 
 app.Run();
+
+// Trim and drop empty entries; reject absurdly long dish names (they go straight into prompts).
+static List<string> SanitizeRequestedMeals(List<string>? requestedMeals, out string? error)
+{
+    var cleaned = (requestedMeals ?? [])
+        .Select(m => m?.Trim() ?? "")
+        .Where(m => m.Length > 0)
+        .ToList();
+    error = cleaned.Any(m => m.Length > 200)
+        ? "Requested meal names must be 200 characters or fewer"
+        : null;
+    return cleaned;
+}
 
 // Keep the new meal names plus existing history, deduped (case-insensitive), newest first, capped at 20.
 static List<string> MergeRecentMeals(List<string> existing, IEnumerable<string> newNames)
